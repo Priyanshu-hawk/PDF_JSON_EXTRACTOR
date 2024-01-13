@@ -1,0 +1,7 @@
+*.pyc
+__pycache__
+venv
+vevn
+tests
+data
+make_project_struct.py
