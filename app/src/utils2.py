@@ -28,33 +28,80 @@ def download_pdf(s3_link, save_path):
             fd.write(chunk)
 
 
-def pdf_text_remover(pdf_path, save_path):
-    """
-    This function takes a pdf and removes the text from it and saves it
+# def pdf_text_remover(pdf_path, save_path):
+#     """
+#     This function takes a pdf and removes the text from it and saves it
     
-    params:
-        pdf_path: str: path to the pdf file
-        save_path: str: path to save the pdf file
-    """
-    doc = fitz.open(pdf_path)
-    # Iterate over PDF pages
-    for page_num in range(len(doc)):
-        page = doc[page_num]
-        # Get text blocks
-        text_blocks = page.get_text("dict")["blocks"]
-        # with open('test_text_block.txt', 'w') as f:
-        #     f.write(str(text_blocks))
-        for block in text_blocks:
-            # Check if the block is a text block
-            if block['type'] == 0:  # 0 is the type for text blocks
-                # For each text block, translate the text and replace the original text
-                for line in block["lines"]:
-                    for span in line["spans"]:
-                        r = fitz.Rect(span["bbox"])
-                        page.add_redact_annot(r)
-        page.apply_redactions()
+#     params:
+#         pdf_path: str: path to the pdf file
+#         save_path: str: path to save the pdf file
+#     """
+#     doc = fitz.open(pdf_path)
+#     # Iterate over PDF pages
+#     for page_num in range(len(doc)):
+#         page = doc[page_num]
+#         # Get text blocks
+#         text_blocks = page.get_text("dict")["blocks"]
+#         # with open('test_text_block.txt', 'w') as f:
+#         #     f.write(str(text_blocks))
+#         for block in text_blocks:
+#             # Check if the block is a text block
+#             if block['type'] == 0:  # 0 is the type for text blocks
+#                 # For each text block, translate the text and replace the original text
+#                 for line in block["lines"]:
+#                     for span in line["spans"]:
+#                         r = fitz.Rect(span["bbox"])
+#                         page.add_redact_annot(r)
+#         page.apply_redactions()
 
-    doc.save(save_path)
+#     doc.save(save_path)
+            
+def pdf_text_remover(pdf_path, save_path):
+    url = "https://avepdf.com"
+    proxy_json = os.path.join(BASE_SRC_FOLDER, "proxies.json")
+    with open(proxy_json, "r") as f:
+        proxy_list = json.load(f)
+    proxy = random.choice(proxy_list['proxy'])
+    proxy = proxy.split(":")
+    proxy = {"http": f"http://{proxy[2]}:{proxy[3]}@{proxy[0]}:{proxy[1]}",
+            "https": f"http://{proxy[2]}:{proxy[3]}@{proxy[0]}:{proxy[1]}"}
+
+    headers = {}
+
+    file_name = pdf_path.split('/')[-1]
+
+    payload = {'processedContextId': ''}
+    files=[
+    ('7004b126-d6cc-47a4-e4fc-efbeea10fb7b',(file_name,open(pdf_path,'rb'),'application/pdf'))
+    ]
+
+
+    # upload file
+    response = requests.request("POST", url+'/en/file/upload', headers=headers, data=payload, files=files, proxies=proxy)
+
+    resp_josn = response.json()
+    print(resp_josn)
+
+    # start file processing
+
+    payload2 = {"fileIds":resp_josn['fileIds'],"processedContextId":resp_josn['processedContextId'],"toolId":"1F4618D2-B763-4C5D-AE40-E9A33024B846","pdfParameters":None}
+
+    response2 = requests.request("POST", url+'/en/file/prepare-file-for-tool', headers=headers, json=payload2)
+    resp_josn2 = response2.json()
+
+    # remove all text frm all pages
+    payload3 = {"processedContextId": resp_josn2['processedContextId'], "fileId":resp_josn2['files'][0]['uploadedFileId'], "pageRange":"*","removeOnlyHiddenText":False}
+
+    response3 = requests.request("POST", url+'/en/tools/remove-text-action', headers=headers, json=payload3)
+    resp_josn3 = response3.json()
+
+    # download file
+    f_down_url = url+'/en/file/downloadClient/'+resp_josn3['processedContextId']+'?filename='+resp_josn3['outputFileName']
+
+    response4 = requests.request("GET", f_down_url, headers=headers)
+    with open(save_path, "wb") as f:
+        f.write(response4.content)
+
 
 def translate_text(text, src_lang, dest_lang):
     """
