@@ -10,6 +10,7 @@ from pymongo.mongo_client import MongoClient
 import certifi
 import random
 import html_to_json
+from bs4 import BeautifulSoup
 
 
 BASE_SRC_FOLDER = os.path.dirname(os.path.abspath(__file__))
@@ -195,13 +196,58 @@ def get_put_value_by_key(data, key, src_lang, dest_lang):
 
 # def bulk_translate(metadata_json, src_lang, dest_lang, save_path)
     
+def json_data_extract(html_data, src_lang, dest_lang):
+    soup = BeautifulSoup(html_data, 'html.parser')
+
+    # Create a list to store parsed data
+    parsed_data = []
+
+    # Extracting paragraph data
+    paragraph_tags = soup.find_all('p')
+    for p in paragraph_tags:
+        p_data = {'style': p['style'], 'content': []}
+
+        # Extract content within 'b' and 'span' tags
+        for content_tag in p.find_all(['b', 'span']):
+            # Check if span is inside b
+            if content_tag.name == 'b':
+                content_dict = {'tag': 'b', 'style': content_tag.get('style', ''), 'text': '', 'content': []}
+
+                # Add span content to the b content
+                for span_tag in content_tag.find_all('span'):
+                    span_content_dict = {'tag': 'span', 'style': span_tag.get('style', ''), 
+                                         'text': span_tag.get_text(strip=True), 
+                                         'text_t': translate_text(span_tag.get_text(strip=True), src_lang, dest_lang)}
+                    content_dict['content'].append(span_content_dict)
+                
+                # Add text to the b if it doesn't have span with text
+                if not content_dict['content']:
+                    content_dict['text'] = content_tag.get_text(strip=True)
+                    content_dict['text_t'] = translate_text(content_tag.get_text(strip=True), src_lang, dest_lang)
+
+                p_data['content'].append(content_dict)
+            elif content_tag.name == 'span' and not content_tag.find_parents('b'):
+                p_data['content'].append({'tag': 'span', 'style': content_tag.get('style', ''), 
+                                          'text': content_tag.get_text(strip=True),
+                                          'text_t': translate_text(content_tag.get_text(strip=True), src_lang, dest_lang)})
+
+        parsed_data.append(p_data)
+    
+    return parsed_data
+    
 def pdf_data_extractor_html(pdf_path, save_path, src_lang, dest_lang):
     doc = fitz.open(pdf_path)
     all_pdf_data = {}
     for page_num in range(len(doc)):
         page = doc[page_num]
     
+        height = page.rect.height
+        width = page.rect.width
+        print(height, width)
+        all_pdf_data[page_num] = {'height': height, 'width': width}
+        
         htm = page.get_text('html')
+        all_pdf_data[page_num]['metadata'] = json_data_extract(htm, src_lang, dest_lang)
 
         
         # with open('{}.html'.format(page_num), 'w') as f:
@@ -210,21 +256,21 @@ def pdf_data_extractor_html(pdf_path, save_path, src_lang, dest_lang):
         # with open('{}.html'.format(page_num), 'r') as f:
         #     htm = f.read()
         #     json_ = xmltojson.parse(htm)
-        output_json = html_to_json.convert(htm)
+        # output_json = html_to_json.convert(htm)
 
-        ## translation
-        target_key = "_value"
-        key_paths = find_keys(output_json, target_key)
+        # ## translation
+        # target_key = "_value"
+        # key_paths = find_keys(output_json, target_key)
 
-        thd = []
-        for key in tqdm(key_paths):
-            txt = ThreadWithReturnValue(target=get_put_value_by_key, args=(output_json, key, src_lang, dest_lang))
-            txt.start()
-            thd.append(txt)
-        for t in thd:
-            t.join()
+        # thd = []
+        # for key in tqdm(key_paths):
+        #     txt = ThreadWithReturnValue(target=get_put_value_by_key, args=(output_json, key, src_lang, dest_lang))
+        #     txt.start()
+        #     thd.append(txt)
+        # for t in thd:
+        #     t.join()
         
-        all_pdf_data[page_num] = output_json
+        # all_pdf_data[page_num] = output_json
     
     with open(save_path, 'w') as f:
         json.dump(all_pdf_data, f, indent=4)
