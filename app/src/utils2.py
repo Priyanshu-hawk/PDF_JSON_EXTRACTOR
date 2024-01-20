@@ -11,6 +11,7 @@ import certifi
 import random
 import html_to_json
 from bs4 import BeautifulSoup
+import subprocess
 
 
 BASE_SRC_FOLDER = os.path.dirname(os.path.abspath(__file__))
@@ -346,3 +347,8 @@ class mongo_db_connection():
     def update_by_mongo_id(self, collection_name, mongo_id, new_json):
         collection = self.db[collection_name]
         collection.update_one({"_id": mongo_id}, {"$set": new_json})
+
+def ai_to_pdf(pdf_path, save_path):
+
+    # gs -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile=out.pdf 5817155.ai
+    subprocess.call(['gs', '-dNOPAUSE', '-dBATCH', '-sDEVICE=pdfwrite', '-sOutputFile='+save_path, pdf_path])
