@@ -354,8 +354,15 @@ def ai_to_pdf(pdf_path, save_path):
     # gs -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile=out.pdf 5817155.ai
     subprocess.call(['gs', '-dNOPAUSE', '-dBATCH', '-sDEVICE=pdfwrite', '-sOutputFile='+save_path, pdf_path])
 
-def ai_to_png(png_path, save_path, dpi, BASE_DATA_FOLDER):
+def ai_to_png(png_path, save_path, dpi, keep_text, BASE_DATA_FOLDER):
     # gs -dNOPAUSE -dBATCH -sDEVICE=pngalpha  -r300 -sOutputFile=page-%03d.png 5817155.ai
+
+    print(keep_text)
+    if keep_text == "1":
+        uuid1 = str(uuid.uuid4())
+        n_png_path = os.path.join(BASE_DATA_FOLDER,uuid1+'.png')
+        subprocess.call(['gs', '-dNOPAUSE', '-dBATCH', '-sDEVICE=pngalpha', '-r'+str(dpi), '-sOutputFile='+n_png_path, png_path])
+        return n_png_path
     
     #coverted to pdf
     subprocess.call(['gs', '-dNOPAUSE', '-dBATCH', '-sDEVICE=pdfwrite', '-sOutputFile='+save_path, png_path])

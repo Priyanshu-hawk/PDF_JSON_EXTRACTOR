@@ -159,13 +159,15 @@ class AIToPNG(Resource):
         if 's3_link' not in req_json or \
             'user_id' not in req_json or \
             'project_id' not in req_json or\
-            'dpi' not in req_json:
+            'dpi' not in req_json or\
+            'keep_text' not in req_json:
             return {'error': 'missing parameters'}, 400
         
         s3_link = req_json['s3_link']
         user_id = req_json['user_id']
         project_id = req_json['project_id']
         dpi = int(req_json['dpi'])
+        keep_text = str(req_json['keep_text'])
 
         BASE_PROJECT_FOLDER = os.path.join(BASE_DATA_FOLDER, user_id, project_id)
         
@@ -183,7 +185,7 @@ class AIToPNG(Resource):
             
             unq_id = str(uuid.uuid4())
             OUT_PDF = os.path.join(BASE_PROJECT_FOLDER, unq_id+'.pdf')
-            png_f = ai_to_png(BASE_AI_FILE, OUT_PDF, dpi, BASE_PROJECT_FOLDER)
+            png_f = ai_to_png(BASE_AI_FILE, OUT_PDF, dpi, keep_text, BASE_PROJECT_FOLDER)
             aws = AwsBackNFro()
 
             with open(png_f, 'rb') as f:
