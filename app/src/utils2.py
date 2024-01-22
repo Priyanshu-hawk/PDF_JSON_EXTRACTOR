@@ -12,6 +12,7 @@ import random
 import html_to_json
 from bs4 import BeautifulSoup
 import subprocess
+import uuid
 
 
 BASE_SRC_FOLDER = os.path.dirname(os.path.abspath(__file__))
@@ -352,3 +353,39 @@ def ai_to_pdf(pdf_path, save_path):
 
     # gs -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile=out.pdf 5817155.ai
     subprocess.call(['gs', '-dNOPAUSE', '-dBATCH', '-sDEVICE=pdfwrite', '-sOutputFile='+save_path, pdf_path])
+
+def ai_to_png(png_path, save_path, dpi, BASE_DATA_FOLDER):
+    # gs -dNOPAUSE -dBATCH -sDEVICE=pngalpha  -r300 -sOutputFile=page-%03d.png 5817155.ai
+    
+    #coverted to pdf
+    subprocess.call(['gs', '-dNOPAUSE', '-dBATCH', '-sDEVICE=pdfwrite', '-sOutputFile='+save_path, png_path])
+
+    # #remove pdf data
+    pdf_f = png_path.split('.')[0]+'_2.pdf'
+    pdf_text_remover(save_path, pdf_f)
+
+    # ## convert pdf to png
+    unq_id = str(uuid.uuid4())
+    png_f = os.path.join(BASE_DATA_FOLDER,unq_id+'.png')
+
+    # gs -dNOPAUSE -dBATCH -sDEVICE=pngalpha -r1200 -sOutputFile=out12.png out.pdf
+    subprocess.call(['gs', '-dNOPAUSE', '-dBATCH', '-sDEVICE=pngalpha', '-r'+str(dpi), '-sOutputFile='+png_f, pdf_f])
+
+    return png_f
+
+    #  pdf_f = png_path.split('.')[0]+'.pdf'
+    # pdf_f_2 = png_path.split('.')[0]+'_2.pdf'
+
+    # #remove pdf data
+    # pdf_text_remover(pdf_f, pdf_f_2)
+
+    # ## convert pdf to png
+    # subprocess.call(['convert', pdf_f_2, save_path])
+
+def esp_to_pdf(esp_path, save_path):
+    # convert 5817156.eps p.pdf
+    subprocess.call(['convert', esp_path, save_path])
+
+def esp_to_png(esp_path, save_path):
+    # convert 5817156.eps p.png
+    subprocess.call(['convert', esp_path, save_path])

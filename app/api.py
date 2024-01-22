@@ -10,7 +10,7 @@ from src.utils2 import download_pdf
 from process_pdf2 import start_process
 import uuid
 import datetime
-from src.utils2 import mongo_db_connection, ai_to_pdf, AwsBackNFro
+from src.utils2 import mongo_db_connection, ai_to_pdf, AwsBackNFro, ai_to_png, esp_to_pdf, esp_to_png
 import shutil
 
 app = Flask(__name__)
@@ -152,11 +152,142 @@ class AIToPDF(Resource):
         except Exception as e:
             return_data = {"status": "error"}
             return ({'status': 'error'}, 400)
+        
+class AIToPNG(Resource):
+    def get(self):
+        req_json = json.loads(request.data.decode('utf-8'))
+        if 's3_link' not in req_json or \
+            'user_id' not in req_json or \
+            'project_id' not in req_json or\
+            'dpi' not in req_json:
+            return {'error': 'missing parameters'}, 400
+        
+        s3_link = req_json['s3_link']
+        user_id = req_json['user_id']
+        project_id = req_json['project_id']
+        dpi = int(req_json['dpi'])
+
+        BASE_PROJECT_FOLDER = os.path.join(BASE_DATA_FOLDER, user_id, project_id)
+        
+        if os.path.exists(BASE_PROJECT_FOLDER):
+            shutil.rmtree(BASE_PROJECT_FOLDER)
+        
+        if not os.path.exists(BASE_PROJECT_FOLDER):
+            os.makedirs(BASE_PROJECT_FOLDER)
+        
+        try:
+            BASE_AI_FILE = os.path.join(BASE_PROJECT_FOLDER, 'file.ai')
+
+            download_pdf(s3_link=s3_link,
+                            save_path=BASE_AI_FILE) # download the pdf and save it in location
+            
+            unq_id = str(uuid.uuid4())
+            OUT_PDF = os.path.join(BASE_PROJECT_FOLDER, unq_id+'.pdf')
+            png_f = ai_to_png(BASE_AI_FILE, OUT_PDF, dpi, BASE_PROJECT_FOLDER)
+            aws = AwsBackNFro()
+
+            with open(png_f, 'rb') as f:
+                server_file = aws.upload(f, png_f.split('/')[-1])
+            print(server_file)
+            return_data = {"status": "success",
+                           "s3_link": server_file}
+            return (return_data, 200)
+        except Exception as e:
+            print(e)
+            return_data = {"status": "error"}
+            return ({'status': 'error'}, 400)
+
+class EspToPDF(Resource):
+    def get(self):
+        req_json = json.loads(request.data.decode('utf-8'))
+        if 's3_link' not in req_json or \
+            'user_id' not in req_json or \
+            'project_id' not in req_json:
+            return {'error': 'missing parameters'}, 400
+        
+        s3_link = req_json['s3_link']
+        user_id = req_json['user_id']
+        project_id = req_json['project_id']
+
+        BASE_PROJECT_FOLDER = os.path.join(BASE_DATA_FOLDER, user_id, project_id)
+        
+        if os.path.exists(BASE_PROJECT_FOLDER):
+            shutil.rmtree(BASE_PROJECT_FOLDER)
+        
+        if not os.path.exists(BASE_PROJECT_FOLDER):
+            os.makedirs(BASE_PROJECT_FOLDER)
+        
+        try:
+            BASE_ESP_FILE = os.path.join(BASE_PROJECT_FOLDER, 'file.esp')
+
+            download_pdf(s3_link=s3_link,
+                            save_path=BASE_ESP_FILE) # download the pdf and save it in location
+            
+            unq_id = str(uuid.uuid4())
+            OUT_PDF = os.path.join(BASE_PROJECT_FOLDER, unq_id+'.pdf')
+            esp_to_pdf(BASE_ESP_FILE, OUT_PDF)
+            aws = AwsBackNFro()
+
+            with open(OUT_PDF, 'rb') as f:
+                server_file = aws.upload(f, OUT_PDF.split('/')[-1])
+            print(server_file)
+            return_data = {"status": "success",
+                           "s3_link": server_file}
+            return (return_data, 200)
+        except Exception as e:
+            return_data = {"status": "error"}
+            return ({'status': 'error'}, 400)
+        
+    
+class EspToPNG(Resource):
+    def get(self):
+        req_json = json.loads(request.data.decode('utf-8'))
+        if 's3_link' not in req_json or \
+            'user_id' not in req_json or \
+            'project_id' not in req_json:
+            return {'error': 'missing parameters'}, 400
+        
+        s3_link = req_json['s3_link']
+        user_id = req_json['user_id']
+        project_id = req_json['project_id']
+
+        BASE_PROJECT_FOLDER = os.path.join(BASE_DATA_FOLDER, user_id, project_id)
+        
+        if os.path.exists(BASE_PROJECT_FOLDER):
+            shutil.rmtree(BASE_PROJECT_FOLDER)
+        
+        if not os.path.exists(BASE_PROJECT_FOLDER):
+            os.makedirs(BASE_PROJECT_FOLDER)
+        
+        try:
+            BASE_ESP_FILE = os.path.join(BASE_PROJECT_FOLDER, 'file.esp')
+
+            download_pdf(s3_link=s3_link,
+                            save_path=BASE_ESP_FILE) # download the pdf and save it in location
+            
+            unq_id = str(uuid.uuid4())
+            OUT_PDF = os.path.join(BASE_PROJECT_FOLDER, unq_id+'.png')
+            esp_to_png(BASE_ESP_FILE, OUT_PDF)
+            aws = AwsBackNFro()
+
+            with open(OUT_PDF, 'rb') as f:
+                server_file = aws.upload(f, OUT_PDF.split('/')[-1])
+            print(server_file)
+            return_data = {"status": "success",
+                           "s3_link": server_file}
+            return (return_data, 200)
+        except Exception as e:
+            return_data = {"status": "error"}
+            return ({'status': 'error'}, 400)
+
 
 
 api.add_resource(TextToTextPDF, '/translate')
 api.add_resource(PDFTranslateStatus, '/status')
 api.add_resource(AIToPDF, '/ai_to_pdf')
+api.add_resource(AIToPNG, '/ai_to_png')
+api.add_resource(EspToPDF, '/esp_to_pdf')
+api.add_resource(EspToPNG, '/esp_to_png')
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=8000)
