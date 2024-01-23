@@ -396,3 +396,9 @@ def esp_to_pdf(esp_path, save_path):
 def esp_to_png(esp_path, save_path):
     # convert 5817156.eps p.png
     subprocess.call(['convert', esp_path, save_path])
+
+def get_lang_list():
+    lng_file = os.path.join(BASE_SRC_FOLDER, "lang_list.json")
+    with open(lng_file, "r") as f:
+        lang_list = json.load(f)
+    return lang_list

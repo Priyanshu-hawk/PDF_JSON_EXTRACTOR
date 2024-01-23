@@ -10,7 +10,7 @@ from src.utils2 import download_pdf
 from process_pdf2 import start_process
 import uuid
 import datetime
-from src.utils2 import mongo_db_connection, ai_to_pdf, AwsBackNFro, ai_to_png, esp_to_pdf, esp_to_png
+from src.utils2 import mongo_db_connection, ai_to_pdf, AwsBackNFro, ai_to_png, esp_to_pdf, esp_to_png, get_lang_list
 import shutil
 
 app = Flask(__name__)
@@ -283,9 +283,16 @@ class EspToPNG(Resource):
             return ({'status': 'error'}, 400)
 
 
+class GetLangList(Resource):
+    def get(self):
+        try:
+            return get_lang_list()
+        except Exception as e:
+            return ({'status': 'error'}, 400)
 
 api.add_resource(TextToTextPDF, '/translate')
 api.add_resource(PDFTranslateStatus, '/status')
+api.add_resource(GetLangList, '/get_lang_list')
 api.add_resource(AIToPDF, '/ai_to_pdf')
 api.add_resource(AIToPNG, '/ai_to_png')
 api.add_resource(EspToPDF, '/esp_to_pdf')
