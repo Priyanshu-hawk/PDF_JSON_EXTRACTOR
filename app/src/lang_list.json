@@ -1,5 +1,12 @@
 {
     "languages": {
+        "gu": "Gujarati",
+        "mr": "Marathi",
+        "bn": "Bengali",
+        "te": "Telugu",
+        "kn": "Kannada",
+        "pa": "Punjabi",
+        "or": "Oriya",
         "en": "English",
         "jp": "Japanese",
         "cn": "Chinese",
