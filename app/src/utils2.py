@@ -135,7 +135,13 @@ def translate_text(text, src_lang, dest_lang):
         proxies=proxy,
         user_agent=user_agent
     )
-    translated_text = translate_obj.translate(text, src=src_lang, dest=dest_lang).text
+    print(f"Translating: {text}")
+    print(f"From: {src_lang} To: {dest_lang}")
+
+    if text != "":
+        translated_text = translate_obj.translate(text, src=src_lang, dest=dest_lang).text
+    else:
+        translated_text = ""
     return translated_text
 
 class ThreadWithReturnValue(Thread):
