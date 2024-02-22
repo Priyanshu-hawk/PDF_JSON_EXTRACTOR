@@ -106,6 +106,22 @@ def pdf_text_remover(pdf_path, save_path):
         f.write(response4.content)
 
 
+def is_url(url):
+    """
+    This function checks if a string is a valid url
+    
+    params:
+        url: str: url to be checked
+    
+    returns:
+        bool: True if the url is valid, False otherwise
+    """
+    url_lists = ["http://", "https://", "www."]
+    for u in url_lists:
+        if u in url:
+            return True
+    return False
+
 def translate_text(text, src_lang, dest_lang):
     """
     This function takes a text and translates it
@@ -135,13 +151,11 @@ def translate_text(text, src_lang, dest_lang):
         proxies=proxy,
         user_agent=user_agent
     )
-    print(f"Translating: {text}")
-    print(f"From: {src_lang} To: {dest_lang}")
-
-    if text != "":
-        translated_text = translate_obj.translate(text, src=src_lang, dest=dest_lang).text
+    translated_text = ""
+    if is_url(text):
+        translated_text = text
     else:
-        translated_text = ""
+        translated_text = translate_obj.translate(text, src=src_lang, dest=dest_lang).text
     return translated_text
 
 class ThreadWithReturnValue(Thread):
